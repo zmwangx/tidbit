@@ -1,0 +1,15 @@
+#compdef tidbit
+
+__complete_action () {
+    local actions
+    actions=(
+        'new:create new tidbit'
+        'view:view all tidbits in single HTML document'
+        'compile:(re-)compile all tidbits to HTML'
+        'edit:open tidbits directory in editor'
+        'push:push tidbits repo to origin/master'
+    )
+    _describe -V "action" actions
+}
+
+_arguments ': :__complete_action'
