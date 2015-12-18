@@ -58,6 +58,10 @@ Actions
     edit
         Open the tidbits directory in the text editor. After editing please
         manually commit changes, and recompile with the `compile' action.
+
+    push
+        Run `git push --verbose --set-upstream origin master' from the tidbits
+        directory. Requires the remote `origin' to be set manually beforehand.
 ```
 
 ## Directory structure

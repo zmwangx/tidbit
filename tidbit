@@ -152,11 +152,15 @@ edit () {
     $editor $tidbitsdir
 }
 
+push () {
+    git -C $tidbitsdir push -v -u origin master || { _wtf 'Push failed.'; return 1; }
+}
+
 ##################################### CLI ######################################
 
 if [[ $# == 0 ]]; then
     new
-elif [[ $1 == (_genhtmlfile|compile|new|view|edit) ]]; then
+elif [[ $1 == (_genhtmlfile|compile|new|view|edit|push) ]]; then
     $1
 else
     cat <<'HELP'
@@ -194,6 +198,10 @@ Actions
     edit
         Open the tidbits directory in the text editor. After editing please
         manually commit changes, and recompile with the `compile' action.
+
+    push
+        Run `git push --verbose --set-upstream origin master' from the tidbits
+        directory. Requires the remote `origin' to be set manually beforehand.
 HELP
     exit 1
 fi
