@@ -1,0 +1,196 @@
+#!/usr/bin/env zsh
+
+here="$(perl -e 'use File::Basename; use Cwd "abs_path"; print dirname(abs_path(@ARGV[0]));' -- "$0")"
+
+tidbitsdir=$here/tidbits
+cachedir=$here/cache
+mkdir -p $tidbitsdir $cachedir
+cachefile=$cachedir/cache.html
+htmlfile=$here/tidbits.html
+
+################################### HELPERS ####################################
+
+_wtf () {
+    print -PR "%F{red}Error: $1%f" >&2
+}
+
+_warn () {
+    print -PR "%F{yellow}Warning: $1%f" >&2
+}
+
+_progress () {
+    print -PR "%F{green}$1%f" >&2
+}
+
+# Cross platform epoch seconds to human readable date conversion
+_epochseconds2date () {
+    [[ $1 == <-> ]] || { _wtf "$1 is not a number"; return 1; }
+    # Try coreutils date
+    date -d @$1 2>/dev/null && return
+    # Try BSD date
+    date -j -f %s $1 2>/dev/null && return
+    # Echo back epoch seconds as a last resort
+    echo $1 && return 1
+}
+
+# Get user's editor.
+#
+# Order of precedence: $VISUAL, $EDITOR, emacs (if exists), vi.
+_editor () {
+    print -R ${VISUAL:-${EDITOR:-${${commands[emacs]:+emacs}:-vi}}}
+}
+
+################################### Actions ####################################
+
+# Generate tidbits.html from cache.html by attaching opening and closing
+# boilerplates.
+_genhtmlfile () {
+    [[ -f $cachefile ]] || { _wtf "'$cachefile' not found."; return 1; }
+    cat >$htmlfile <<'OPEN'
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>tidbits</title>
+  <link href="styles.css" media="all" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+OPEN
+    cat $cachefile >>$htmlfile
+    cat >>$htmlfile <<'CLOSE'
+</body>
+</html>
+CLOSE
+}
+
+compile () {
+    (( $+commands[cmark] )) || { _wtf 'cmark not found.'; return 1; }
+
+    [[ -f $cachefile ]] && cp -f $cachefile $cachefile.bak
+    cat /dev/null >$cachefile
+
+    local timestamps timestamp tidbit
+    # Extract timestamps from the tidbit filenames <timestamp>.md
+    timestamps=( $tidbitsdir/<->.md(n:t:r) )
+    # Loop over timestamps in reverse order (recent first)
+    for timestamp in ${(Oa)timestamps}; do
+        tidbit=$tidbitsdir/$timestamp.md
+        _progress "Compiling $timestamp.md..."
+        print "<p><time>$(_epochseconds2date $timestamp)</time></p>" >>$cachefile
+        cmark <$tidbit >>$cachefile || _warn "Failed to compile $timestamp.md."
+        print '<hr />' >>$cachefile
+    done
+
+    _genhtmlfile
+}
+
+new () {
+    local timestamp basename tidbit
+    timestamp="$(date +%s)"
+    basename=$timestamp.md
+    tidbit=$tidbitsdir/$basename
+    touch $tidbit
+
+    # Launch editor if stdin is connected to a tty; otherwise, consume stdin
+    if [[ -t 0 ]]; then
+        local editor
+        editor="$(_editor)"
+        _progress "Editing $basename..."
+        $editor $tidbit
+    else
+        _progress "Saving content to $basename..."
+        cat >$tidbit
+    fi
+
+    if [[ "$(wc -c <$tidbit)" == 0 ]]; then
+        _warn 'Empty tidbit discarded.'
+        rm -f $tidbit
+        return 1
+    fi
+
+    # Initialize tidbitsdir as git repo if it isn't one already
+    [[ -e $tidbitsdir/.git ]] \
+        || { _progress "Initializing git repo..."; git -C $tidbitsdir init; } \
+        || { _wtf "Failed to initialize '$tidbitsdir' as git repo."; return 1; }
+
+    # Commit the new tidbit with message "Add <timestamp>.md"
+    _progress "Commiting $basename..."
+    git -C $tidbitsdir add $basename \
+        && git -C $tidbitsdir commit -m "Add $basename" $basename \
+        || { _wtf "Failed to commit in $basename."; return 1; }
+
+    _progress "Saved $basename."
+
+    _progress "Caching..."
+    if [[ -f $cachefile ]]; then
+        # If already cached, only compile the new tidbit, and add to the top of cache
+        cp -f $cachefile $cachefile.bak
+        print "<p><time>$(_epochseconds2date $timestamp)</time></p>" >$cachefile
+        cmark <$tidbit >>$cachefile || _warn "Failed to compile $timestamp.md."
+        print '<hr />' >>$cachefile
+        cat $cachefile.bak >>$cachefile
+        _genhtmlfile
+    else
+        compile
+    fi
+}
+
+view () {
+    [[ -f $htmlfile ]] || compile || { _wtf 'Compilation failed.'; return 1; }
+    local opencommand
+    for opencommand in open xdg-open; do
+        (( $+commands[$opencommand] )) && { open $htmlfile; return; }
+    done
+    # Fallback: Just print the filename
+    print -R $htmlfile
+}
+
+edit () {
+    local editor
+    editor="$(_editor)"
+    # Open the tidbits dir with editor (Emacs: opens Dired; vi: good luck)
+    $editor $tidbitsdir
+}
+
+##################################### CLI ######################################
+
+if [[ $1 == (_genhtmlfile|compile|new|view|edit) ]]; then
+    $1
+else
+    cat <<'HELP'
+Usage: tidbit ACTION
+
+ACTION is one of the following. When a text editor is involved, it is
+determined in the following order:
+
+    * $VISUAL if set and non-empty;
+    * $EDITOR if set and non-empty;
+    * emacs if available;
+    * vi.
+
+    new
+        Create a new tidbit. If stdin is a tty, the text editor is launched for
+        editing. Once you have finished editing, save and quit the editor; the
+        tidbit is automatically discarded if the saved content is
+        empty. Alternatively, if stdin is not a tty, then all input is consumed
+        and treated as the content.
+
+        The tidbits directory is automatically initialized as a git repo, and a
+        new commit is made for the new tidbit.
+
+    view
+        View all tidbits in a single HTML file. The HTML file is opened in the
+        default application if `open' or `xdg-open' is available, or its path
+        is printed to stdout.
+
+    compile
+        (Re-)Compile all tidbits to generate a single HTML for viewing. Tidbits
+        are automatically compiled as they are added, but in case the HTML file
+        is out-of-date for some reason, use this action to recompile.
+
+    edit
+        Open the tidbits directory in the text editor. After editing please
+        manually commit changes, and recompile with the `compile' action.
+HELP
+    exit 1
+fi
