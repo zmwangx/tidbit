@@ -24,16 +24,17 @@ Clone the repo, then `make install`.
 Taken from command line help:
 
 ```
-Usage: tidbit ACTION
+Usage: tidbit [ACTION]
 
-ACTION is one of the following. When a text editor is involved, it is
-determined in the following order:
+Available actions are listed below. If no action is given, assume `new'. When a
+text editor is involved, it is determined in the following order:
 
     * $VISUAL if set and non-empty;
     * $EDITOR if set and non-empty;
     * emacs if available;
     * vi.
 
+Actions
     new
         Create a new tidbit. If stdin is a tty, the text editor is launched for
         editing. Once you have finished editing, save and quit the editor; the
