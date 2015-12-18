@@ -64,6 +64,7 @@ Actions
 
 ```
 tidbit/
+├── COPYING
 ├── Makefile
 ├── README.md
 ├── cache/
@@ -84,3 +85,12 @@ tidbit/
 The stylesheet `styles.css` can be customized. The repository includes a basic
 `styles.css.sample`, which is installed to `style.css` by `make install` if the
 latter is not already present.
+
+## License
+
+```
+Copyright © 2015 Zhiming Wang <zmwangx@gmail.com>
+This work is free. You can redistribute it and/or modify it under the
+terms of the Do What The Fuck You Want To Public License, Version 2,
+as published by Sam Hocevar. See the COPYING file for more details.
+```
