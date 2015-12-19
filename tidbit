@@ -162,7 +162,7 @@ if [[ $# == 0 ]]; then
 elif [[ $1 == (_genhtmlfile|compile|new|view|edit|push) ]]; then
     $1
 else
-    cat <<'HELP'
+    cat >&2 <<'HELP'
 Usage: tidbit [ACTION]
 
 Available actions are listed below. If no action is given, assume `new'. When a
