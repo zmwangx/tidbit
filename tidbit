@@ -69,11 +69,10 @@ compile () {
     [[ -f $cachefile ]] && cp -f $cachefile $cachefile.bak
     cat /dev/null >$cachefile
 
-    local timestamps timestamp tidbit
-    # Extract timestamps from the tidbit filenames <timestamp>.md
-    timestamps=( $tidbitsdir/<->.md(n:t:r) )
-    # Loop over timestamps in reverse order (recent first)
-    for timestamp in ${(Oa)timestamps}; do
+    local timestamp tidbit
+    # Extract timestamps from the tidbit filenames <timestamp>.md, and loop
+    # over them in reverse order (recent first)
+    for timestamp in $tidbitsdir/<->.md(nOn:t:r); do
         tidbit=$tidbitsdir/$timestamp.md
         _progress "Compiling $timestamp.md..."
         print "<p><time>$(_epochseconds2date $timestamp)</time></p>" >>$cachefile
