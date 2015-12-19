@@ -11,15 +11,15 @@ htmlfile=$here/tidbits.html
 ################################### HELPERS ####################################
 
 _wtf () {
-    print -PR "%F{red}Error: $1%f" >&2
+    print -R $'\e[31m'"Error: $1"$'\e[0m' >&2
 }
 
 _warn () {
-    print -PR "%F{yellow}Warning: $1%f" >&2
+    print -R $'\e[33m'"Warning: $1"$'\e[0m' >&2
 }
 
 _progress () {
-    print -PR "%F{green}$1%f" >&2
+    print -R $'\e[32m'"$1"$'\e[0m' >&2
 }
 
 # Cross platform epoch seconds to human readable date conversion
