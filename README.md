@@ -56,8 +56,10 @@ Actions
         is out-of-date for some reason, use this action to recompile.
 
     edit
-        Open the tidbits directory in the text editor. After editing please
-        manually commit changes, and recompile with the `compile' action.
+        Open the tidbits directory in the text editor. After editing `git
+        commit --all' is called interactively from the tidbits directory to let
+        you commit in changes, and please recompile with the `compile' action
+        if necessary.
 
     push
         Run `git push --verbose --set-upstream origin master' from the tidbits

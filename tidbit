@@ -113,7 +113,7 @@ new () {
         || { _wtf "Failed to initialize '$tidbitsdir' as git repo."; return 1; }
 
     # Commit the new tidbit with message "Add <timestamp>.md"
-    _progress "Commiting $basename..."
+    _progress "Committing $basename..."
     git -C $tidbitsdir add $basename \
         && git -C $tidbitsdir commit -m "Add $basename" $basename \
         || { _wtf "Failed to commit in $basename."; return 1; }
@@ -149,6 +149,8 @@ edit () {
     editor="$(_editor)"
     # Open the tidbits dir with editor (Emacs: opens Dired; vi: good luck)
     $editor $tidbitsdir
+    _progress "Committing all changes..."
+    git -C $tidbitsdir commit --all
 }
 
 push () {
@@ -195,8 +197,10 @@ Actions
         is out-of-date for some reason, use this action to recompile.
 
     edit
-        Open the tidbits directory in the text editor. After editing please
-        manually commit changes, and recompile with the `compile' action.
+        Open the tidbits directory in the text editor. After editing `git
+        commit --all' is called interactively from the tidbits directory to let
+        you commit in changes, and please recompile with the `compile' action
+        if necessary.
 
     push
         Run `git push --verbose --set-upstream origin master' from the tidbits
